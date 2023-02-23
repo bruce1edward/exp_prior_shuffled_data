@@ -1,13 +1,16 @@
-function [track_para] = EM_DA_mallow(Y_permuted, X_permuted, order, mcmc_steps, m, iter, theta)
+function [track_para] = DA_HB(Y_permuted, X_permuted, order, mcmc_steps, m, iter, a, b)
+%X_permuted = X;a =log(n);b = 1;
 [n,d] = size(X_permuted);
 beta_ss = X_permuted\Y_permuted;
 sigma_sq_ss = norm(Y_permuted - X_permuted*beta_ss)^2/n;
-track_para = zeros(iter, d+1);
+theta = log(n);
+track_para = zeros(iter, d+2);
 XTX = X_permuted'*X_permuted;
 for k = 1:iter
     track = zeros(mcmc_steps/m,n);               % Initialized the hat_Pi\
     track1 = zeros(mcmc_steps/m, d);
     track2 = zeros(mcmc_steps/m, 1);
+    track3 = zeros(mcmc_steps/m, 1);
     count = 0;
     Y_hat = X_permuted*beta_ss/sigma_sq_ss; % Computing the estimator of Y_hat
     for m_step = 1: mcmc_steps
@@ -41,10 +44,29 @@ for k = 1:iter
     r = unidrnd(mcmc_steps/m);
     for ii = 1:mcmc_steps/m
         eta = X_permuted(track(ii,:),:)*beta_ss;
-        track2(ii,:) = (Y_permuted - eta)'*(Y_permuted - eta)/(n - d - 1);
+        track2(ii) = (Y_permuted - eta)'*(Y_permuted - eta)/(n - d - 1);
     end
     sigma_sq_ss = 1/gamrnd((n - d - 1)/2,2/((n - d - 1)*track2(r)));
-    track_para(k, :) = [beta_ss' sigma_sq_ss];
-    %track_para(k, :) = beta_ss';
+
+    %sample from mixture distribution of theta
+    r = unidrnd(mcmc_steps/m);
+    for ii = 1:mcmc_steps/m
+        track3(ii) = sum(track(ii,:) ~= 1:n);
+    end
+    psi = @(gamma) exp((exp(gamma) - 1 - n)); %@(gamma) exp(-gamma*n)*poisscdf(n,exp(gamma) - 1)*exp(exp(gamma) - 1);
+    %f = @(gamma) exp(-gamma*track3(r)).*gampdf(gamma,a,b);
+    f_psi = @(gamma) (exp(-gamma*track3(r))./psi(gamma)).*gampdf(gamma,a,b);
+    %poisscdf(n,exp(6) - 1)*exp(exp(6) - 1)
+    %f(3)
+    %plot(1:0.1:30, f(1:0.1:30), '*')
+    %theta = sampleDist(f, 0.5, 1000, [0,5*log(n)]);
+    M = f_psi(log(n - track3(r)));
+    %M,N, a, b
+    theta_samples = RejectionSampling(f_psi, M, mcmc_steps/m, a, b);
+    r = unidrnd(mcmc_steps/m);
+    theta_ss = theta_samples(r);
+    
+    track_para(k, :) = [beta_ss' sigma_sq_ss theta_ss];
+    disp(median(theta_samples))
 end
 end

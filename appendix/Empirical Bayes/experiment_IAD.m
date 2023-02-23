@@ -1,5 +1,6 @@
 rng('default')
 addpath('functions') 
+addpath('data')
 load('Italian_survey_data_linkage.mat');X_link = X;X = X(:,1);Y_link = Y;Y = Y(:,1);
 n = numel(X);X = [ones(n,1) X];K_n = 0.4;
 track_ree = zeros(100, 4);

@@ -1,4 +1,4 @@
-function [track_para] = EM_DA_mallow(Y_permuted, X_permuted, order, mcmc_steps, m, iter, theta)
+function [track_para] = DA_mallow(Y_permuted, X_permuted, order, mcmc_steps, m, iter, theta)
 [n,d] = size(X_permuted);
 beta_ss = X_permuted\Y_permuted;
 sigma_sq_ss = norm(Y_permuted - X_permuted*beta_ss)^2/n;

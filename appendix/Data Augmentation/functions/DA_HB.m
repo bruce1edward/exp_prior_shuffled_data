@@ -1,4 +1,4 @@
-function [track_para] = EM_DA_HB(Y_permuted, X_permuted, order, mcmc_steps, m, iter, a, b)
+function [track_para] = DA_HB(Y_permuted, X_permuted, order, mcmc_steps, m, iter, a, b)
 %X_permuted = X;a =log(n);b = 1;
 [n,d] = size(X_permuted);
 beta_ss = X_permuted\Y_permuted;
@@ -51,22 +51,10 @@ for k = 1:iter
     %sample from mixture distribution of theta
     r = unidrnd(mcmc_steps/m);
     for ii = 1:mcmc_steps/m
-        track3(ii) = sum(track(ii,:) ~= 1:n);
+        track3(ii) = theta*sum(track(ii,:) ~= 1:n);
     end
-    psi = @(gamma) exp((exp(gamma) - 1 - n)); %@(gamma) exp(-gamma*n)*poisscdf(n,exp(gamma) - 1)*exp(exp(gamma) - 1);
-    %f = @(gamma) exp(-gamma*track3(r)).*gampdf(gamma,a,b);
-    f_psi = @(gamma) (exp(-gamma*track3(r))./psi(gamma)).*gampdf(gamma,a,b);
-    %poisscdf(n,exp(6) - 1)*exp(exp(6) - 1)
-    %f(3)
-    %plot(1:0.1:30, f(1:0.1:30), '*')
-    %theta = sampleDist(f, 0.5, 1000, [0,5*log(n)]);
-    M = f_psi(log(n - track3(r)));
-    %M,N, a, b
-    theta_samples = RejectionSampling(f_psi, M, mcmc_steps/m, a, b);
-    r = unidrnd(mcmc_steps/m);
-    theta_ss = theta_samples(r);
+    theta = gamrnd(a, track3(r) + b);
+    track_para(k, :) = [beta_ss' sigma_sq_ss theta];
     
-    track_para(k, :) = [beta_ss' sigma_sq_ss theta_ss];
-    disp(median(theta_samples))
 end
 end
